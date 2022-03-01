@@ -82,7 +82,7 @@ description: |
         train_split (Dataset): The train split.
         eval_split (Dataset): The eval split.
         test_split (Dataset): The test split.
-        test_split_json (JsonObject): The test split JSON object.
+        test_split_json (JsonArray): The test split JSON object.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The instance baseline used to calculate explanations.
         metadata (TabularExampleGenMetadata): The tabular example gen metadata.
@@ -116,7 +116,7 @@ outputs:
 - {name: train_split, type: Dataset}
 - {name: eval_split, type: Dataset}
 - {name: test_split, type: Dataset}
-- {name: test_split_json, type: JsonObject}
+- {name: test_split_json, type: JsonArray}
 - {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
 - {name: metadata, type: TabularExampleGenMetadata}
 - {name: gcp_resources, type: String}
