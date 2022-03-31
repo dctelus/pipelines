@@ -25,9 +25,10 @@ description: |
             run.
             For prediction results, the files should be in format "prediction.results-*".
             For explanation results, the files should be in format "explanation.results-*".
-        classification_type (str):
-            Required for a `classification` problem_type. The type of classification problem.
+        classification_type (Optional[str]):
+            Required only for a `classification` problem_type. The type of classification problem.
             Defined as `multiclass` or `multilabel`.
+            If not set, defaulted to `multiclass`.
         class_names (Sequence[str]):
             The list of class names for the ground_truth_column, in the same order they appear in
             the batch predictions jobs predictions output file.
@@ -39,14 +40,15 @@ description: |
             The column name of the feature containing ground truth.
             Formatted to be able to find nested columns, delimeted by `.`.
             Prefixed with 'instance.' internally for Vertex Batch Prediction.
-        prediction_score_column (str):
+        prediction_score_column (Optional[str]):
             The column name of the field containing batch prediction scores.
             Formatted to be able to find nested columns, delimeted by `.`.
-            If not set, defaulted to `prediction.scores`.
+            If not set, defaulted to `prediction.scores` for a `classification` problem_type,
+            `prediction.value` for a `regression` problem_type.
         prediction_label_column (Optional[str]):
             Optional. The column name of the field containing classes the model is scoring.
             Formatted to be able to find nested columns, delimeted by `.`.
-            If not set, defaulted to `prediction.classes`.
+            If not set, defaulted to `prediction.classes` for classification.
         prediction_id_column (Optional[str]):
             Optional. The column name of the field containing ids for classes the model is scoring.
             Formatted to be able to find nested columns, delimeted by `.`.
@@ -78,7 +80,7 @@ description: |
             If not set, defaulted to `10`.
         dataflow_max_workers_num (Optional[int]):
             Optional. The max number of workers executing the evaluation run.
-            If not set, defaulted to `100`.
+            If not set, defaulted to `25`.
 
     Returns:
         evaluation_metrics (system.Metrics):
@@ -91,25 +93,25 @@ inputs:
 - {name: problem_type, type: String}
 - {name: predictions_format, type: String, default: 'jsonl'}
 - {name: batch_prediction_job, type: google.VertexBatchPredictionJob}
-- {name: classification_type, type: String, optional: true}
+- {name: classification_type, type: String, optional: true, default: 'multiclass'}
 - {name: class_names, type: JsonArray}
 - {name: ground_truth_column, type: String}
-- {name: prediction_score_column, type: String, default: 'prediction.scores'}
-- {name: prediction_label_column, type: String, optional: true, default: 'prediction.classes'}
-- {name: prediction_id_column, type: String, optional: true, default: ''}
-- {name: example_weight_column, type: String, optional: true, default: ''}
+- {name: prediction_score_column, type: String, optional: true}
+- {name: prediction_label_column, type: String, optional: true}
+- {name: prediction_id_column, type: String, optional: true}
+- {name: example_weight_column, type: String, optional: true}
 - {name: positive_classes, type: JsonArray, optional: true, default: '{}'}
 - {name: generate_feature_attribution, type: Boolean, optional: true, default: False}
 - {name: dataflow_service_account, type: String, optional: true}
 - {name: dataflow_disk_size, type: Integer, default: 50}
 - {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
 - {name: dataflow_workers_num, type: Integer, default: '10'}
-- {name: dataflow_max_workers_num, type: Integer, default: '100'}
+- {name: dataflow_max_workers_num, type: Integer, default: '25'}
 outputs:
 - {name: evaluation_metrics, type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.1
+    image: gcr.io/ml-pipeline/model-evaluation:v0.2
     command:
     - python
     - /main.py
@@ -136,14 +138,26 @@ implementation:
     - {inputValue: class_names}
     - --ground_truth_column
     - "instance.{{$.inputs.parameters['ground_truth_column']}}"
-    - --prediction_score_column
-    - {inputValue: prediction_score_column}
-    - --prediction_label_column
-    - {inputValue: prediction_label_column}
-    - --prediction_id_column
-    - {inputValue: prediction_id_column}
-    - --example_weight_column
-    - {inputValue: example_weight_column}
+    - if:
+        cond: {isPresent: prediction_score_column}
+        then:
+        - --prediction_score_column
+        - {inputValue: prediction_score_column}
+    - if:
+        cond: {isPresent: prediction_label_column}
+        then:
+        - --prediction_label_column
+        - {inputValue: prediction_label_column}
+    - if:
+        cond: {isPresent: prediction_id_column}
+        then:
+        - --prediction_id_column
+        - {inputValue: prediction_id_column}
+    - if:
+        cond: {isPresent: example_weight_column}
+        then:
+        - --example_weight_column
+        - {inputValue: example_weight_column}
     - --positive_classes
     - {inputValue: positive_classes}
     - --generate_feature_attribution
