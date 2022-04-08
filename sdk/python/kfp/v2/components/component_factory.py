@@ -77,7 +77,7 @@ if ! [ -x "$(command -v pip)" ]; then
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
+    --no-warn-script-location {index_url_options}{concat_package_list} && exec "$0" "$@"
 '''
 
 
@@ -358,7 +358,7 @@ def _get_command_and_args_for_lightweight_component(
         textwrap.dedent('''\
                     program_path=$(mktemp -d)
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
-                    python3 -m kfp.v2.components.executor_main \
+                    exec python3 -m kfp.v2.components.executor_main \
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
